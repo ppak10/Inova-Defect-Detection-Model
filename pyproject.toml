@@ -1,0 +1,30 @@
+[project]
+name = "inova-defect-detection"
+version = "0.1.0"
+description = "Layer-wise powder-bed defect detection for the SLS4All Inova MK1"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = [
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "pillow",
+    "opencv-python-headless",
+    "datasets",
+    "torch",
+    "torchvision",
+]
+
+[project.optional-dependencies]
+export = ["onnx", "onnxruntime"]
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["inova_defect_detection"]
