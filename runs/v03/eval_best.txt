@@ -1,0 +1,13 @@
+Loading weights:   0%|          | 0/223 [00:00<?, ?it/s]Loading weights: 100%|██████████| 223/223 [00:00<00:00, 10450.61it/s]
+runs/v03/checkpoints/best.pt (epoch 7) on builds [3]: 3297 layers
+  recoater_hopping       AP nan  (n_pos 0)
+  recoater_streaking     AP 0.1124  (n_pos 11327)
+  incomplete_spreading   AP 0.5351  (n_pos 378)
+  swelling               AP 0.0605  (n_pos 1929)
+  debris                 AP 0.0036  (n_pos 649)
+  super_elevation        AP 0.2500  (n_pos 1)
+  spatter                AP 0.7483  (n_pos 34908)
+  misprint               AP 0.0017  (n_pos 2)
+  over_melting           AP nan  (n_pos 0)
+  under_melting          AP 0.0001  (n_pos 2)
+  mean AP (defined classes): 0.2140

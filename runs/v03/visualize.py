@@ -47,7 +47,7 @@ def main() -> None:
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--classes", nargs="+", default=["swelling", "super_elevation", "recoater_streaking"])
     p.add_argument("--n", type=int, default=6)
-    p.add_argument("--builds", type=int, nargs="+", default=[5])
+    p.add_argument("--builds", type=int, nargs="+", default=[3])
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = p.parse_args()
 

@@ -56,7 +56,7 @@ def evaluate(model, dl, device: str) -> dict[str, float]:
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint", required=True)
-    p.add_argument("--builds", type=int, nargs="+", default=[5])
+    p.add_argument("--builds", type=int, nargs="+", default=[3])
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--workers", type=int, default=8)
     p.add_argument("--max-cases", type=int, default=None)

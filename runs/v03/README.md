@@ -35,6 +35,36 @@ Deployment note: short-feed inference must run on the POST-RECOAT frame
 in the recoat→scan gap (the remedy is another recoat pass, which must
 precede the scan).
 
+## Results (2026-07-14, build-3 holdout, 3,297 layers — the honest split)
+
+| class (n_pos) | v03 AP | reference |
+|---|---|---|
+| incomplete_spreading (378) | **0.535** | pixstat probe 0.578 |
+| spatter (34,908) | 0.748 | |
+| recoater_streaking (11,327) | **0.112** | was 0.66-0.81 with build 3 IN train |
+| swelling (1,929) | 0.061 | linear probe ceiling 0.336 |
+| debris (649) | 0.004 | only 120 train positives |
+
+Best epoch 7/30. (Do NOT quote the build-5 numbers for this run —
+build 5 is in its training set.)
+
+Findings:
+1. **Short feed 0.535 with real statistics behind it** — first
+   trustworthy number for the top-priority class; deep model ~parity
+   with, not better than, 6 pixel statistics. v04: inject raw
+   photometric channels into the head; ship the pixstat logistic as a
+   standalone alerter regardless.
+2. **Streaking does NOT generalize cross-build** (0.11 on build 3 vs
+   0.66-0.81 when build 3 was trained on). Earlier streaking optimism
+   was partly memorized build style. Needs investigation — build 3 is
+   also the scan-path-mismatch build.
+3. Swelling at 0.061 vs its 0.336 probe ceiling — the seg pipeline
+   still underuses region-poolable signal (v04: dedicated region head
+   on pooled features).
+4. Debris is OPTICALLY OBVIOUS (dark objects in after_melt; see
+   figures/debris/) but data-starved (120 train positives). Candidates:
+   copy-paste debris augmentation, k-fold, Inova human-loop labels.
+
 ## Pipeline
 
 ```bash
