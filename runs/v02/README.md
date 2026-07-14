@@ -29,7 +29,32 @@ uv run python -m runs.v02.evaluate --checkpoint runs/v02/checkpoints/best.pt
 uv run python -m runs.v02.visualize --checkpoint runs/v02/checkpoints/best.pt
 ```
 
-Baselines to beat (same eval: all 3,575 build-5 layers, region-level AP):
-mean 0.358 / streaking 0.771 (v01 best_anomaly1k) / spatter 0.777,
-short-feed 0.329 (v01 full ckpt). Success criterion: swelling and
-super_elevation move off ~0.01 without giving back streaking.
+## Results (2026-07-14, all 3,575 build-5 layers, region-level AP)
+
+| class (n_pos) | v01 anomaly-1k | v01 full | **v02** |
+|---|---|---|---|
+| recoater_streaking (54,389) | **0.771** | 0.675 | 0.663 |
+| incomplete_spreading (11) | 0.251 | 0.329 | **0.482** |
+| spatter (9,568) | 0.538 | **0.777** | 0.565 |
+| swelling (91) | 0.009 | 0.006 | 0.003 |
+| super_elevation (73) | 0.001 | 0.004 | 0.000 |
+| mean | 0.314 | 0.358 | 0.343 |
+
+**Verdict: the curl interventions FAILED.** Temporal prev_scan frame +
+weighted region loss + cosine LR did not move swelling/super_elevation
+off the floor (visuals unchanged: swelling fires too broadly,
+super_elevation blind). Short-feed improved a lot (n=11 — noisy).
+
+Post-mortem hypotheses for v03, in order of suspicion:
+1. **iid halogen augmentation destroys the temporal signal** — each
+   frame gets independent lighting + per-image standardization, so the
+   prev-vs-current DIFFERENCE (the actual elevation cue) is noise at
+   train time. Fix: correlated per-sequence lighting trajectories
+   and/or an explicit photometric-normalized difference channel.
+2. Region-mean scoring dilutes sparse-in-region classes (swelling GT is
+   edge speckle inside large parts) — try top-k% pixel aggregation.
+3. 518-px input may be too coarse for elevation shading — try 1036
+   (74x74 patches; the 1024 cache exists for exactly this).
+4. On the Inova, curl may be better seen THERMALLY (elevated part =
+   less powder insulation = hotter in bedmatrix) — a transfer-side
+   mitigation independent of Peregrine optics.
