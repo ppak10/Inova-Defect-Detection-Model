@@ -3,6 +3,13 @@ import importlib
 import pytest
 
 MODULES = [
+    "runs.v03.constants",
+    "runs.v03.dataset",
+    "runs.v03.model",
+    "runs.v03.trainer",
+    "runs.v03.train",
+    "runs.v03.evaluate",
+    "runs.v03.visualize",
     "runs.v02.constants",
     "runs.v02.dataset",
     "runs.v02.model",

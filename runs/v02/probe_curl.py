@@ -35,15 +35,24 @@ from .constants import PEREGRINE_CACHE
 from .dataset import standardize
 from .trainer import average_precision
 
-CLS = "frac_swelling"
 THR = 0.05
-TRAIN_BUILDS = [2, 4]
-TEST_BUILD = 3
+
+# per-class probe config: label col, current-image index (0=after_powder
+# post-recoat, 1=after_melt post-scan), region kinds, split.
+# short feed: the physical cue is prev raster showing through fresh
+# powder -> cur = post-RECOAT view, positives live in POWDER regions.
+CONFIGS = {
+    "swelling": dict(col="frac_swelling", cur_idx=1, kinds=("part",),
+                     train_builds=[2, 4], test_build=3),
+    "incomplete_spreading": dict(col="frac_incomplete_spreading", cur_idx=0,
+                                 kinds=("part", "powder"),
+                                 train_builds=[1, 2, 4], test_build=3),
+}
 
 
-def pick_layers(regions: pd.DataFrame, builds: list[int], n: int, rng) -> list[tuple[int, int]]:
-    parts = regions[(regions["kind"] == "part") & regions["build"].isin(builds)]
-    by_layer = parts.groupby(["build", "layer"])[CLS].max()
+def pick_layers(regions: pd.DataFrame, builds: list[int], n: int, rng, cfg) -> list[tuple[int, int]]:
+    parts = regions[regions["kind"].isin(cfg["kinds"]) & regions["build"].isin(builds)]
+    by_layer = parts.groupby(["build", "layer"])[cfg["col"]].max()
     pos = [k for k, v in by_layer.items() if v > THR]
     neg = [k for k, v in by_layer.items() if v <= THR]
     rng.shuffle(pos), rng.shuffle(neg)
@@ -56,19 +65,19 @@ def pick_layers(regions: pd.DataFrame, builds: list[int], n: int, rng) -> list[t
 
 
 @torch.no_grad()
-def extract(layers, backbone, device, batch: int = 16):
+def extract(layers, backbone, device, cfg, batch: int = 16):
     """Per part region: pooled cur features, diff features, pixel stats,
     label fraction."""
     feats_cur, feats_diff, pixstats, fracs = [], [], [], []
     regions = pd.read_parquet(PEREGRINE_CACHE / "regions.parquet")
-    regions = regions[regions["kind"] == "part"].set_index(["build", "layer", "region_idx"])
+    regions = regions[regions["kind"].isin(cfg["kinds"])].set_index(["build", "layer", "region_idx"])
 
     for i in range(0, len(layers), batch):
         chunk = layers[i : i + batch]
         imgs, prevs, rmaps, keys = [], [], [], []
         for b, l in chunk:
             with np.load(PEREGRINE_CACHE / f"build_{b}_layer_{l:04d}.npz") as z:
-                cur = z["images"][1].astype(np.float32)
+                cur = z["images"][cfg["cur_idx"]].astype(np.float32)
                 rmap = z["region_map"].astype(np.int64)
             with np.load(PEREGRINE_CACHE / f"build_{b}_layer_{l - 1:04d}.npz") as zp:
                 prev = zp["images"][1].astype(np.float32)
@@ -95,7 +104,7 @@ def extract(layers, backbone, device, batch: int = 16):
                 if r < 0:
                     continue
                 try:
-                    frac = float(regions.loc[(b, l, r), CLS])
+                    frac = float(regions.loc[(b, l, r), cfg["col"]])
                 except KeyError:
                     continue  # powder tile index or filtered region
                 m = (rmap == r).float()[None, None]
@@ -143,6 +152,7 @@ def fit_probe(x_tr, y_tr, x_te, device, steps: int = 2000) -> np.ndarray:
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--cls", default="swelling", choices=list(CONFIGS))
     p.add_argument("--max-layers", type=int, default=2400)
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = p.parse_args()
@@ -151,16 +161,17 @@ def main() -> None:
 
     backbone = AutoModel.from_pretrained("facebook/dinov2-base").to(args.device).eval()
 
+    cfg = CONFIGS[args.cls]
     rng = np.random.default_rng(0)
     regions = pd.read_parquet(PEREGRINE_CACHE / "regions.parquet")
-    tr_layers = pick_layers(regions, TRAIN_BUILDS, args.max_layers * 2 // 3, rng)
-    te_layers = pick_layers(regions, [TEST_BUILD], args.max_layers // 3, rng)
-    print(f"train layers {len(tr_layers)} (builds {TRAIN_BUILDS}), test layers {len(te_layers)} (build {TEST_BUILD})")
+    tr_layers = pick_layers(regions, cfg["train_builds"], args.max_layers * 2 // 3, rng, cfg)
+    te_layers = pick_layers(regions, [cfg["test_build"]], args.max_layers // 3, rng, cfg)
+    print(f"cls {args.cls}: train layers {len(tr_layers)} (builds {cfg['train_builds']}), test layers {len(te_layers)} (build {cfg['test_build']})")
 
     print("extracting train features...")
-    c_tr, d_tr, s_tr, f_tr = extract(tr_layers, backbone, args.device)
+    c_tr, d_tr, s_tr, f_tr = extract(tr_layers, backbone, args.device, cfg)
     print("extracting test features...")
-    c_te, d_te, s_te, f_te = extract(te_layers, backbone, args.device)
+    c_te, d_te, s_te, f_te = extract(te_layers, backbone, args.device, cfg)
     y_tr, y_te = (f_tr > THR).astype(float), f_te > THR
     print(f"train regions {len(y_tr)} ({int(y_tr.sum())} pos), test regions {len(y_te)} ({int(y_te.sum())} pos)")
     print(f"test prevalence (random-baseline AP): {y_te.mean():.4f}")
