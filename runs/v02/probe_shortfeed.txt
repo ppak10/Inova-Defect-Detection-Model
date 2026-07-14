@@ -1,1 +1,20 @@
 Loading weights:   0%|          | 0/223 [00:00<?, ?it/s]Loading weights: 100%|██████████| 223/223 [00:00<00:00, 10094.00it/s]
+cls incomplete_spreading: train layers 919 (builds [1, 2, 4]), test layers 491 (build 3)
+extracting train features...
+  16/919 layers, 1505 regions
+  176/919 layers, 17521 regions
+  336/919 layers, 33097 regions
+  496/919 layers, 48183 regions
+  656/919 layers, 63609 regions
+  816/919 layers, 78911 regions
+extracting test features...
+  16/491 layers, 1324 regions
+  176/491 layers, 14408 regions
+  336/491 layers, 27338 regions
+  491/491 layers, 39844 regions
+train regions 88806 (435 pos), test regions 39844 (378 pos)
+test prevalence (random-baseline AP): 0.0095
+  pixstats (no backbone)     AP 0.5782
+  cur features               AP 0.0331
+  cur+diff features          AP 0.0484
+  diff features only         AP 0.0162

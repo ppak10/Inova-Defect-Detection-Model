@@ -15,11 +15,21 @@ Sensitivity > precision while detections are human-gated.
 | region loss weight 1.0 → 3.0 | probe_curl.py: a linear probe on region-pooled frozen features hit 0.336 AP on swelling where the dense-head pipeline scored ~0 — region-level supervision is where part-state classes live. |
 | headline metrics: debris AP, incomplete_spreading AP | matches the deployment priorities and remedies (extra recoat; skip/exclude part). |
 
-Kept from v02: prev_scan temporal frame (probe REFUTED its value for
-swelling, but short feed's cue — prev raster show-through — is
-physically a prev-vs-current correlation; probe_shortfeed.txt tests
-this), per-class region weights, cosine LR, 518-px frames, shared v01
-cache.
+Kept from v02: prev_scan temporal frame, per-class region weights,
+cosine LR, 518-px frames, shared v01 cache.
+
+**Short-feed probe verdict (runs/v02/probe_shortfeed.txt, build-3
+test, 378 positives, prevalence 0.0095):** 6 raw pixel statistics
+(region mean/std + pixel-level prev-diff stats) hit **AP 0.578** while
+frozen DINOv2 features score 0.03-0.05 — self-supervised backbones are
+trained to be INVARIANT to brightness/contrast, which is the entire
+short-feed cue. Consequences: (1) a pixstat logistic detector is the
+strongest short-feed alerter available — build it as a standalone
+deployable; (2) v04: concatenate raw standardized image + prev-diff
+channels into the seg head to restore the photometric information the
+backbone discards. Also: debris has only 120 TRAIN positives under
+this split (649/769 live in val build 3) — cross-build debris needs
+k-fold or within-build splits, or Inova-side labels.
 
 Deployment note: short-feed inference must run on the POST-RECOAT frame
 in the recoat→scan gap (the remedy is another recoat pass, which must
