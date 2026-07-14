@@ -1,0 +1,21 @@
+Loading weights:   0%|          | 0/223 [00:00<?, ?it/s]Loading weights: 100%|██████████| 223/223 [00:00<00:00, 11881.58it/s]
+train layers 835 (builds [2, 4]), test layers 800 (build 3)
+extracting train features...
+  16/835 layers, 545 regions
+  176/835 layers, 6544 regions
+  336/835 layers, 12216 regions
+  496/835 layers, 18253 regions
+  656/835 layers, 24368 regions
+  816/835 layers, 31002 regions
+extracting test features...
+  16/800 layers, 318 regions
+  176/800 layers, 3524 regions
+  336/800 layers, 6666 regions
+  496/800 layers, 9464 regions
+  656/800 layers, 11874 regions
+train regions 32327 (4664 pos), test regions 14060 (898 pos)
+test prevalence (random-baseline AP): 0.0639
+  pixstats (no backbone)     AP 0.1082
+  cur features               AP 0.3362
+  cur+diff features          AP 0.3104
+  diff features only         AP 0.0633

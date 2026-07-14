@@ -40,6 +40,27 @@ runs/v01/README.md).
   damage is physical); part defect (curl/damage) → agent PROPOSES
   exclusion, human ack gates it. Precision matters most where actuation
   is destructive — a false-positive exclusion kills a good part.
+- PRIORITY CLASSES (user, 2026-07-14): the failure modes actually seen
+  on the Inova are (1) DEBRIS that compounds across layers and damages
+  other parts, and (2) SHORT FEED causing over-rastering of parts.
+  Curl has NOT been observed lately — deprioritize swelling/
+  super_elevation (super_elevation is also untrainable: 73/83 positives
+  are in build 5). Planned remedies exist for both: extra recoat pass;
+  skip/exclude part.
+- Short feed detection WINDOW: visible post-recoat toward the overflow
+  ("over powder") bin side as the previous layer's raster showing
+  through. The remedy (another recoat) must run BEFORE the scan starts
+  → inference must trigger on the post-recoat frame, in the
+  recoat→scan gap, not at layer end.
+- CURRENT operating point (human-gated phase): user prefers SENSITIVITY
+  over precision — false positives are acceptable because a human makes
+  the final call. The precision-first rule above kicks in only when
+  actuation becomes autonomous.
+- No agent light control exists, and halogens can't be pulsed freely
+  (surface damage risk) — do not plan capture-side lighting fixes.
+- Powder: all builds ran reused PA12-GF (glass-filled, ≥1 prior cycle);
+  powder history/refresh ratio is untracked so appearance drift across
+  builds is expected.
 
 ## Training data
 

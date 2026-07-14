@@ -45,16 +45,31 @@ weighted region loss + cosine LR did not move swelling/super_elevation
 off the floor (visuals unchanged: swelling fires too broadly,
 super_elevation blind). Short-feed improved a lot (n=11 — noisy).
 
-Post-mortem hypotheses for v03, in order of suspicion:
-1. **iid halogen augmentation destroys the temporal signal** — each
-   frame gets independent lighting + per-image standardization, so the
-   prev-vs-current DIFFERENCE (the actual elevation cue) is noise at
-   train time. Fix: correlated per-sequence lighting trajectories
-   and/or an explicit photometric-normalized difference channel.
-2. Region-mean scoring dilutes sparse-in-region classes (swelling GT is
-   edge speckle inside large parts) — try top-k% pixel aggregation.
-3. 518-px input may be too coarse for elevation shading — try 1036
-   (74x74 patches; the 1024 cache exists for exactly this).
-4. On the Inova, curl may be better seen THERMALLY (elevated part =
-   less powder insulation = hotter in bedmatrix) — a transfer-side
-   mitigation independent of Peregrine optics.
+Post-mortem — RESOLVED by probe_curl.py (linear probes on frozen
+DINOv2 features, clean images, train builds 2+4 / test build 3,
+14,060 test regions, 898 positive):
+
+| probe | AP |
+|---|---|
+| random baseline | 0.064 |
+| pixel stats (no backbone) | 0.108 |
+| **current-frame features** | **0.336** |
+| cur + diff features | 0.310 |
+| diff features only | 0.063 |
+
+1. **Temporal-difference hypothesis REFUTED** — diff features are
+   exactly random even on clean consecutive frames. There was no
+   temporal swelling signal for the augmentation to destroy.
+2. **The cue IS in single-frame appearance** and frozen features
+   already carry it (5x random from a linear probe). v01/v02's ~0
+   swelling AP was primarily the broken eval split (91 noisy positives
+   in build 5) and secondarily the training path.
+3. Split discoveries (2026-07-14): super_elevation untrainable
+   cross-build (73/83 positives in build 5 — drop from targets);
+   debris (649/769) and short-feed (378/824) concentrate in build 3 →
+   v03 must HOLD OUT BUILD 3, train on 1,2,4,5.
+4. Priority reset from user: Inova's real failure modes are DEBRIS
+   (compounds across layers) and SHORT FEED (over-rastering; visible
+   post-recoat as prev raster show-through near the overflow bin;
+   remedy must run before the scan → post-recoat inference window).
+   Curl deprioritized. Sensitivity > precision while human-gated.
