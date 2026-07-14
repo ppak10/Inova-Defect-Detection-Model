@@ -20,7 +20,11 @@ required; scripts import `runs.*`). Every stage should support
 
 `runs/*/data|checkpoints|figures|exports` and `wandb/` are gitignored.
 Experiment tracking: wandb, one project per run (`inova-defect-v01`).
-Current run: **v01** (skeleton — docstrings only, no implementation).
+Current run: **v02** (temporal prev_scan frame + weighted region loss +
+cosine LR; targets the curl-class failure). The 44 GB Peregrine cache
+is a shared artifact under runs/v01/data/peregrine — later runs read
+it in place. v01 results: mean AP 0.358, streaking 0.77, curl ~0 (see
+runs/v01/README.md).
 
 ## Where this fits
 
