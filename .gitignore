@@ -1,3 +1,10 @@
+# Project artifacts (run layout)
+runs/*/checkpoints/
+runs/*/figures/
+runs/*/exports/
+runs/*/data/
+wandb/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

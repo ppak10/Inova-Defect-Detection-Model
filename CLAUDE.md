@@ -6,6 +6,22 @@ on the recorder host (`7810`), and feeds detections to the agentic system
 in the parent repo so agents can react mid-print (recoater compensation,
 part exclusion proposals).
 
+## Repo layout
+
+Experiments live in `runs/vXX/`, one directory per model iteration —
+same convention as the AMT repo (`../AMT`): `constants.py`,
+`prepare.py` (one-time data cache builder), `dataset.py`,
+`registration.py` (galvo→chamber calibration), `model.py`,
+`trainer.py`, `train.py`, `evaluate.py`, `visualize.py`, `export.py`
+(ONNX), `README.md` (design rationale + v(X-1)→vX change table).
+Run everything as `uv run python -m runs.vXX.<script>` (module form
+required; scripts import `runs.*`). Every stage should support
+`--max-cases 5` for smoke tests.
+
+`runs/*/data|checkpoints|figures|exports` and `wandb/` are gitignored.
+Experiment tracking: wandb, one project per run (`inova-defect-v01`).
+Current run: **v01** (skeleton — docstrings only, no implementation).
+
 ## Where this fits
 
 - Submodule of `Agentic-Additive-Manufacturing-Process-Optimization`
@@ -25,9 +41,72 @@ part exclusion proposals).
 
 ### Inova capture (ours, polymer SLS)
 
-Recorded per build by the parent repo's recorder. Raw frames live on
-`7810` under `data/frames/<build_id>/` (NOT in this repo, NOT on the
-training machine — pull via the HF dataset or rsync from 7810):
+ACCESS PATH (verified 2026-07-13): HF `ppak10/Inova-Mk1-Telemetry` is
+self-sufficient — `data/ticks/<build>.parquet`, one row per 10 Hz tick
+with frame_chamber/frame_galvo/frame_thermal EMBEDDED inline (HF Image
+structs, null when no frame fell in the 100 ms window), ~64 sensor
+columns, and 1 kHz `position_hf_burst` lists. 25 builds (001–046),
+165 GB. Layer boundaries: **z2** advances once per deposited layer (NOT
+z1 as previously noted; the dataset repo's timelapse scripts have
+reference detection logic). Raw 32×24 bedmatrix floats are NOT in the
+mirror — the thermal signal is the rendered frame_thermal image.
+Stream ticks rather than downloading all 165 GB; small dev builds
+(013/032/038) are local under /mnt/am/ppak/HuggingFace/Datasets/.
+
+**Measured imaging reality (build 032/013/038 analysis, 2026-07-13 — do
+not rediscover):**
+- Chamber illumination is driven by the halogen BED HEATERS, not a
+  dedicated light: frames swing from pitch black (halogens off, bed at
+  temp) through hazy low-contrast gray to completely blown-out white
+  (halogens on). Mean brightness is NOT a quality metric — both
+  extremes are useless; score frames by gradient/detail energy with
+  saturation+black penalties. In 032 every layer had ≥1 usable frame,
+  but usable ≠ high-contrast: even good frames are hazy, sintered
+  regions read as subtle darkening. 013 was 97% lit; lighting regime
+  varies per build.
+- The laser spot glows visibly in chamber frames during scanning (useful
+  scan-progress signal, nuisance for single-frame semantics).
+- `frame_galvo` is NOT a binary current-layer mask — it renders the
+  laser trace with time-fade (white=recent → gray=older). The per-layer
+  part mask must be ACCUMULATED (binarize + max) over the layer's galvo
+  frames.
+- `laser.power` at 10 Hz ticks is far undersampled (30 nonzero ticks
+  across 91 layers in 032) — unusable for phase detection; use z2 steps
+  + galvo-frame activity instead.
+- Chamber frames must be rotated 90° CLOCKWISE to match the galvo image
+  orientation (user-confirmed 2026-07-13). Apply before any
+  registration/warping.
+- Recoater travels LEFT → RIGHT in the rotated (galvo-aligned) view
+  (user-confirmed). Streaks therefore run horizontally there; orient
+  the common grid so this matches the Peregrine streak axis.
+- Camera is never remounted/refocused between builds (user-confirmed) —
+  registration is ONE-TIME. The lid opens/closes between builds, so
+  allow a small per-build refinement, but the bed-plate alignment is
+  central to the machine design.
+- Bed geometry (sls4all.com): build chamber 177×177 mm, effective PA12
+  build area 150×150 mm (×185 mm z). Whether the galvo image spans the
+  full chamber or the effective area still needs verifying against a
+  known part geometry.
+- Halogen state IS partially in telemetry (measured on 032):
+  `lights.lights.enabled` corr +0.56 with frame brightness,
+  `powerman.power.current` (200–1200 W — the halogen draw) corr +0.45.
+  Use as a causal lighting prior for frame quality/selection; imperfect
+  because of thermal lag (halogens glow after power-off).
+- Inova defect ground truth does NOT exist and is not reconstructable
+  from memory (user-confirmed): failures were process-parameter-driven;
+  recycled-powder builds (030/031) are prime suspects but unverified.
+  Retrospective screening plan: self-supervised / embedding-outlier
+  analysis (e.g. PCA over per-layer features) to surface anomalous
+  layers for human review — not hand labeling.
+- Consequence (decided): Inova inference input is a SEQUENCE of frames
+  per layer (K frames spanning recoat+scan), fused by an
+  attention-pooling module trained with synthetic halogen-state
+  augmentation on Peregrine single images (black/dim/hazy/blown-out +
+  glare gradients + laser-spot artifacts) — AMT-v03-style synthetic
+  degradation, calibrated against these measured stats.
+
+Origin capture (context; raw frames live on `7810` under
+`data/frames/<build_id>/`):
 
 - `<ts>_chamber.jpg` — visible camera of bed, ~10 fps, ~650 px wide,
   fisheye at edges. Sintered part cross-sections read clearly darker
@@ -86,38 +165,60 @@ super-elevation/swelling (≈ curl — the killer SLS failure mode). DROP or
 redefine spatter, over-melting, under-melting (melt-pool phenomena).
 Target label set: ~6–7 classes.
 
-## Model plan (decided in parent-repo session 2026-07-13)
+## Model plan (revised 2026-07-13, this-repo session; supersedes the
+## parent-repo ~4M-CPU plan)
 
-- ~4M-param encoder-decoder: SegFormer-B0 or MobileNetV3-encoder U-Net.
-  DSCNN (Scime et al. 2020, doi 10.1016/j.addma.2020.101453) is the
-  reference architecture: parallel local/regional/global legs, multi-
-  sensor fusion, machine-agnostic — mirror its fusion idea, not its code.
-- Input = stacked channels per layer event: chamber frame, galvo mask
-  warped into camera space, frame-diff vs previous layer, upsampled
-  bedmatrix thermal channel.
-- v1 head: per-REGION classification (galvo mask splits part vs powder
-  regions; classify each) — literature (IJAMT 2026 CAD-guided lightweight
-  CNN framework, doi 10.1007/s00170-026-17884-2) finds this beats blind
-  dense segmentation for streaking/super-elevation, and it's far cheaper
-  to label. v2: dense segmentation once pixel labels exist.
+- Foundation-backbone dense segmentation: DINOv2 ViT encoder (size
+  configurable, start ViT-B; frozen first, LoRA/unfreeze as ablation) +
+  segmentation head over the 12 Peregrine classes. GPU-primary inference
+  (below) removed the small-model constraint; frozen foundation features
+  are also the best bet against the metal→polymer domain gap. SAM/SAM2
+  are class-agnostic — their role is backbone/ablation, not the model.
+- Output contract (decided): the DENSE MAP ONLY — 12 independent
+  per-class sigmoid channels (multi-label, NOT one-hot: anomalies
+  overlay powder/printed; per-class thresholds enable actuation
+  tiering) on the common bed grid, delivered in bed/galvo coordinates.
+  The agentic system does its own map→part attribution from prescribed
+  geometry. Region aggregation (part regions + 8x8 powder tiles) is
+  INTERNAL: a training loss term (region fractions are exact full-res
+  labels) and an eval view — not served.
+- Common input format (3x512x512): post-recoat image, post-scan image,
+  part mask — Peregrine (after_powder, after_melt, part_ids>0) ==
+  Inova (chamber post-recoat, chamber post-scan, warped galvo mask).
+  Per-image standardization; augment Peregrine toward measured Inova
+  imaging conditions (AMT-v03 lesson). Thermal channel deferred to
+  Inova fine-tuning (Peregrine has no analogue).
+- Labels: train supervised on Peregrine only (Inova has NO defect
+  labels). Transfer to Inova zero-shot; human confirm/reject of live
+  detections builds the Inova label set for later fine-tuning.
 - One-time calibration needed: homography galvo/bed coords → chamber
   pixels (chamber cam has fisheye; may need distortion correction first).
-- Label bootstrap: retro-label historical builds from 7810, prioritizing
-  known failures. Pretrain on Peregrine configs, fine-tune on Inova.
-- Consider classical-CV baselines first (streak lines along recoat axis,
-  exposed-bed contrast for short feed) — they set the bar the CNN must
-  beat and may suffice for v1 alerting.
+- Classical-CV baselines (streak lines along recoat axis, exposed-bed
+  contrast for short feed) still set the bar the model must beat.
+- Data handling (decided): NO full local clones — prepare.py streams
+  layers from HF and caches only the compact 1024^2 common-format
+  arrays (~45 GB for all 17.5k layers; 1024 so 1-2 px streak hairlines
+  survive). Raw dev subsets live under
+  /mnt/am/ppak/HuggingFace/Datasets/.
 
-## Deployment constraints — IMPORTANT
+## Deployment (decided 2026-07-13, supersedes ONNX-on-7810-CPU plan)
 
-- Inference host `7810` GPUs: Quadro K2200 (4 GB, Maxwell sm_50) + 2×
-  K620 (2 GB). Modern PyTorch wheels dropped sm_50 (2.8+cu126 needs CC
-  ≥6.1; CUDA 13 drops Maxwell from toolkit). Do NOT plan GPU inference
-  there. Decided: export ONNX, run `onnxruntime` on CPU — cadence is one
-  inference per layer (~30–120 s), a few hundred ms on CPU is 100×
-  headroom.
-- Training happens on THIS machine (the GPU box) with a normal modern
-  torch stack; only the ONNX artifact ships to 7810.
+- GPU-PRIMARY inference: a stateless torch service on THIS machine
+  (3× RTX 6000 Ada; reserve ONE GPU for inference, train on the others).
+  Contract: layer-event frames in → (region, class, score) rows out.
+  The 7810 recorder calls it over the network; latency is irrelevant at
+  one inference per layer (~30–120 s). An A4500 box is an alternative
+  remote host.
+- Availability model: detections are ADVISORY suggestions to the agentic
+  system — if the GPU host is down, the agent proceeds without them.
+  No CPU fallback required. (Optional ONNX-CPU export remains possible
+  but is not a design constraint anymore.)
+- 7810's own GPUs (K2200 4 GB + 2× K620, Maxwell sm_50) are ruled out:
+  modern torch/CUDA dropped sm_50, and ~1.3 TFLOPS isn't worth the
+  frozen-driver-stack tax.
+- GPU headroom also enables the future streaming mode (score every
+  recoat frame at ~10 fps to catch streaks mid-spread), which per-layer
+  CPU inference never could.
 
 ## Conventions (inherited from parent repo)
 

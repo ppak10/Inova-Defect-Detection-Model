@@ -1,0 +1,13 @@
+Loading weights:   0%|          | 0/223 [00:00<?, ?it/s]Loading weights: 100%|██████████| 223/223 [00:00<00:00, 10375.15it/s]
+runs/v01/checkpoints/best_anomaly1k.pt (epoch 40) on builds [5]: 3575 layers
+  recoater_hopping       AP nan  (n_pos 0)
+  recoater_streaking     AP 0.7712  (n_pos 54389)
+  incomplete_spreading   AP 0.2505  (n_pos 11)
+  swelling               AP 0.0090  (n_pos 91)
+  debris                 AP nan  (n_pos 0)
+  super_elevation        AP 0.0006  (n_pos 73)
+  spatter                AP 0.5379  (n_pos 9568)
+  misprint               AP nan  (n_pos 0)
+  over_melting           AP nan  (n_pos 0)
+  under_melting          AP nan  (n_pos 0)
+  mean AP (defined classes): 0.3138

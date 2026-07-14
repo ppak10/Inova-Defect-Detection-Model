@@ -12,8 +12,14 @@ dependencies = [
     "pillow",
     "opencv-python-headless",
     "datasets",
-    "torch",
+    # driver 570 on this box serves CUDA <= 12.8; torch 2.12+ ships cu130
+    # wheels that silently fall back to CPU. Same pin as AMT.
+    "torch==2.11.*",
     "torchvision",
+    "transformers",
+    "tqdm",
+    "matplotlib",
+    "wandb",
 ]
 
 [project.optional-dependencies]
@@ -22,9 +28,19 @@ export = ["onnx", "onnxruntime"]
 [dependency-groups]
 dev = ["pytest", "ruff"]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[tool.uv]
+package = false
 
-[tool.hatch.build.targets.wheel]
-packages = ["inova_defect_detection"]
+# driver 570 serves CUDA <= 12.8; PyPI torch wheels ship cu130 and fall
+# back to CPU silently. Same cu126 build AMT runs on this machine.
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

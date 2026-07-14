@@ -14,9 +14,19 @@ Part of [Agentic-Additive-Manufacturing-Process-Optimization](https://github.com
 
 ## Layout
 
-- `inova_defect_detection/` — package: data loaders, galvo→chamber
-  registration, model, training/export entry points.
-- `tests/` — `uv run pytest`.
+Experiments live in `runs/vXX/`, one directory per model iteration
+(same convention as the AMT repo): `constants.py`, `prepare.py`
+(one-time data cache builder), `dataset.py`, `registration.py`
+(galvo→chamber calibration), `model.py`, `trainer.py`, `train.py`,
+`evaluate.py`, `visualize.py`, `export.py` (ONNX), `README.md` (design
+rationale). Run scripts in module form:
+
+```sh
+uv run python -m runs.v01.prepare
+```
+
+`runs/*/data|checkpoints|figures|exports` and `wandb/` are gitignored.
+`tests/` — `uv run pytest`.
 
 See `CLAUDE.md` for the full design context and data contracts.
 
