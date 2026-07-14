@@ -20,6 +20,9 @@ dependencies = [
     "tqdm",
     "matplotlib",
     "wandb",
+    "fastapi",
+    "uvicorn",
+    "requests",
 ]
 
 [project.optional-dependencies]
