@@ -47,6 +47,12 @@ CONFIGS = {
     "incomplete_spreading": dict(col="frac_incomplete_spreading", cur_idx=0,
                                  kinds=("part", "powder"),
                                  train_builds=[1, 2, 4], test_build=3),
+    # streaking cross-build diagnosis: if a linear probe transfers to
+    # build 3 but the trained model doesn't, it's a training problem;
+    # if the probe also collapses, build-3 streaks are different.
+    "recoater_streaking": dict(col="frac_recoater_streaking", cur_idx=0,
+                               kinds=("part", "powder"),
+                               train_builds=[1, 2, 4, 5], test_build=3),
 }
 
 
