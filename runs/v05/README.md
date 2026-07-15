@@ -16,6 +16,35 @@ localized events -> dense).
 Baselines to beat (build 3): swelling head 0.616, short-feed dense
 0.543 (ep20)/0.535 (v03), debris 0.009, spatter 0.748.
 
+## Results (2026-07-15, build-3 holdout; best ckpt = epoch 9)
+
+| class (n_pos) | v03 | v04 (dense/head) | **v05 (dense/head)** |
+|---|---|---|---|
+| swelling (1,929) | 0.061 | 0.231 / 0.616 | **0.392 / 0.683** |
+| incomplete_spreading (378) | 0.535 | 0.497 / 0.199 | 0.386 / 0.047 |
+| debris (649) | 0.004 | 0.009 / 0.006 | 0.003 / 0.002 |
+| spatter (34,908) | 0.748 | 0.700 / 0.730 | 0.654 / 0.677 |
+
+Verdicts:
+- **Swelling: best ever on BOTH paths** — the region head keeps
+  compounding (0.683). Deploy reads swelling from v05.
+- **Short-feed REGRESSED** (0.386 vs v04's 0.497 / v03's 0.535): the
+  7-channel photometric stack did not help and may have added noise.
+  The standalone pixstat logistic (0.578) remains the best short-feed
+  detector — ship that, not a bigger stack.
+- **Debris: three strikes, definitively data-limited in Peregrine**
+  (paste v2 with region supervision still ~0.003). Stop paste
+  iterations; the path is Inova human-loop labels.
+- Streaking on build 3 is a label artifact (below) — judge on build-5
+  holdouts (v01: 0.771).
+
+Deployment picture after v01-v05: per-class routing across artifacts —
+swelling <- v05 region head; short-feed <- pixstat alerter (+v03 dense
+as secondary); streaking/spatter <- any recent dense head (validated on
+build 5); debris <- awaits Inova labels. Peregrine-side iteration has
+hit diminishing returns — the value frontier is the transfer side
+(registration, v05-capable serve, human feedback loop).
+
 ## Streaking probe verdict (runs/v02/probe_streaking.txt, 2026-07-15)
 
 ALL feature types collapse on build-3 streaking (pixstats 0.065, cur

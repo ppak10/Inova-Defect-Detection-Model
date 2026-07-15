@@ -20,11 +20,16 @@ required; scripts import `runs.*`). Every stage should support
 
 `runs/*/data|checkpoints|figures|exports` and `wandb/` are gitignored.
 Experiment tracking: wandb, one project per run (`inova-defect-v01`).
-Current run: **v02** (temporal prev_scan frame + weighted region loss +
-cosine LR; targets the curl-class failure). The 44 GB Peregrine cache
-is a shared artifact under runs/v01/data/peregrine — later runs read
-it in place. v01 results: mean AP 0.358, streaking 0.77, curl ~0 (see
-runs/v01/README.md).
+Current run: **v05**. The 44 GB Peregrine cache is a shared artifact
+under runs/v01/data/peregrine — later runs read it in place. State
+after v01-v05 (details in each run README): swelling/curl 0.683 (v05
+region head), short-feed 0.578 (pixstat logistic — beats all neural
+attempts), streaking 0.771 (build-5 holdout; build-3 streak labels are
+an exposure artifact, unusable), debris data-limited in Peregrine
+(awaits Inova human-loop labels). Peregrine iteration is at
+diminishing returns; the frontier is transfer-side (registration,
+serve port to v04+ signature, human feedback loop). Inference service:
+runs/v03/serve.py on :8100 (v03 checkpoint).
 
 ## Where this fits
 

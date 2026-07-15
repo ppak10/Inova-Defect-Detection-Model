@@ -1,0 +1,13 @@
+Loading weights:   0%|          | 0/223 [00:00<?, ?it/s]Loading weights: 100%|██████████| 223/223 [00:00<00:00, 10323.27it/s]
+runs/v05/checkpoints/best.pt (epoch 9) on builds [3]: 3297 layers
+  recoater_hopping       dense nan  head nan  (n_pos 0)
+  recoater_streaking     dense 0.1173  head 0.0670  (n_pos 11327)
+  incomplete_spreading   dense 0.3856  head 0.0467  (n_pos 378)
+  swelling               dense 0.3918  head 0.6831  (n_pos 1929)
+  debris                 dense 0.0025  head 0.0022  (n_pos 649)
+  super_elevation        dense 0.5000  head 0.0000  (n_pos 1)
+  spatter                dense 0.6540  head 0.6768  (n_pos 34908)
+  misprint               dense 0.0026  head 0.0003  (n_pos 2)
+  over_melting           dense nan  head nan  (n_pos 0)
+  under_melting          dense 0.0015  head 0.0013  (n_pos 2)
+  mean AP (defined classes): 0.2569
