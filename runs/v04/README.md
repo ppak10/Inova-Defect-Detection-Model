@@ -19,6 +19,26 @@ by v04).
 Eval reports BOTH ranking paths per class: `dense` (region-mean of the
 dense map, v03-comparable) and `head` (region head).
 
+## Results (2026-07-15, build-3 holdout; best ckpt = epoch 10 by head mean AP)
+
+| class (n_pos) | v03 | v04 dense | v04 head | verdict |
+|---|---|---|---|---|
+| swelling (1,929) | 0.061 | 0.231 | **0.616** | region head VALIDATED — 10x v03, ~2x the probe ceiling |
+| incomplete_spreading (378) | 0.535 | 0.497 (0.543 @ep20) | 0.199 | photometric parity-to-slight-gain; dense is the right path for it |
+| debris (649) | 0.004 | 0.009 | 0.006 | paste FAILED to transfer to real build-3 debris |
+| spatter (34,908) | 0.748 | 0.700 | 0.730 | parity |
+| recoater_streaking (11,327) | 0.112 | 0.092 | 0.049 | cross-build fragility untouched (not a v04 target) |
+
+Takeaways: (1) part-state classes belong to the region head — deploy
+should read swelling from it; (2) checkpoint selection on head-mean-AP
+sacrificed some short-feed (ep20 hit 0.543 dense) — v05: per-class-
+family selection or a combined metric; (3) debris paste needs rethink:
+8-100 source layers from 2 builds may lack appearance diversity, or
+paste artifacts are too easy — consider harder blending (Poisson),
+scale jitter, and pasting onto POWDER (Peregrine debris labels sit on
+parts, but Inova debris lands anywhere); (4) streaking cross-build is
+now the biggest open problem.
+
 ## Pipeline
 
 ```bash
