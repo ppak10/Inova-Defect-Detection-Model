@@ -1,0 +1,25 @@
+Loading weights:   0%|          | 0/223 [00:00<?, ?it/s]Loading weights: 100%|██████████| 223/223 [00:00<00:00, 9926.45it/s]
+cls recoater_streaking: train layers 1600 (builds [1, 2, 4, 5]), test layers 800 (build 3)
+extracting train features...
+  16/1600 layers, 1453 regions
+  176/1600 layers, 15505 regions
+  336/1600 layers, 29261 regions
+  496/1600 layers, 43366 regions
+  656/1600 layers, 57149 regions
+  816/1600 layers, 71453 regions
+  976/1600 layers, 87279 regions
+  1136/1600 layers, 103203 regions
+  1296/1600 layers, 119309 regions
+  1456/1600 layers, 135387 regions
+extracting test features...
+  16/800 layers, 1354 regions
+  176/800 layers, 14864 regions
+  336/800 layers, 28444 regions
+  496/800 layers, 41209 regions
+  656/800 layers, 53611 regions
+train regions 149834 (12909 pos), test regions 64771 (3419 pos)
+test prevalence (random-baseline AP): 0.0528
+  pixstats (no backbone)     AP 0.0645
+  cur features               AP 0.0485
+  cur+diff features          AP 0.0400
+  diff features only         AP 0.0924
