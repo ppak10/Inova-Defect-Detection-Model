@@ -63,4 +63,6 @@ unusable, and do NOT spend model effort "fixing" it.
 ```bash
 uv run python -m runs.v05.train
 uv run python -m runs.v05.evaluate --checkpoint runs/v05/checkpoints/best.pt
+uv run python -m runs.v05.fit_pixstat        # refit the short-feed logistic artifact
+runs/v05/deploy.sh [port] [gpu]              # deploy/restart the inference service
 ```

@@ -29,7 +29,12 @@ an exposure artifact, unusable), debris data-limited in Peregrine
 (awaits Inova human-loop labels). Peregrine iteration is at
 diminishing returns; the frontier is transfer-side (registration,
 serve port to v04+ signature, human feedback loop). Inference service:
-runs/v03/serve.py on :8100 (v03 checkpoint).
+runs/v05/serve.py on :8100 (deploy/restart: runs/v05/deploy.sh) with
+per-class routing — swelling/super_elevation from the region head,
+incomplete_spreading from the pixstat logistic
+(runs/v05/pixstat_shortfeed.npz), rest from the dense map. 7810 calls
+POST /infer with the layer's raw frames (see serve.py contract;
+runs/v03/replay.py is a reference client).
 
 ## Where this fits
 
